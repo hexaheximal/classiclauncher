@@ -1,0 +1,33 @@
+diff -ruN original_src/net/minecraft/GameUpdater.java src/net/minecraft/GameUpdater.java
+--- original_src/net/minecraft/GameUpdater.java	2022-10-09 16:24:20.000000000 -0400
++++ src/net/minecraft/GameUpdater.java	2022-10-09 16:20:34.729112770 -0400
+@@ -527,7 +527,7 @@
+                   if (!entities.hasMoreElements()) {
+                      this.subtaskMessage = "";
+                      jarFile.close();
+-                     File f = new File(path + nativeJar);
++                     f = new File(path + nativeJar);
+                      f.delete();
+                      return;
+                   }
+diff -ruN original_src/net/minecraft/LoginForm.java src/net/minecraft/LoginForm.java
+--- original_src/net/minecraft/LoginForm.java	2022-10-09 16:24:20.000000000 -0400
++++ src/net/minecraft/LoginForm.java	2022-10-09 16:19:07.623259564 -0400
+@@ -221,7 +221,7 @@
+                public void paint(Graphics g) {
+                   super.paint(g);
+                   int x = 0;
+-                  int yx = false;
++                  int yx = 0;
+                   FontMetrics fm = g.getFontMetrics();
+                   int width = fm.stringWidth(this.getText());
+                   int height = fm.getHeight();
+@@ -262,7 +262,7 @@
+                public void paint(Graphics g) {
+                   super.paint(g);
+                   int x = 0;
+-                  int yx = false;
++                  int yx = 0;
+                   FontMetrics fm = g.getFontMetrics();
+                   int width = fm.stringWidth(this.getText());
+                   int height = fm.getHeight();

@@ -1,0 +1,156 @@
+diff -ruN src_original/net/minecraft/GameUpdater.java src/net/minecraft/GameUpdater.java
+--- src_original/net/minecraft/GameUpdater.java	2022-10-09 19:47:18.304997096 -0400
++++ src/net/minecraft/GameUpdater.java	2022-10-09 19:26:49.070845434 -0400
+@@ -306,7 +306,7 @@
+    }
+ 
+    public Applet createApplet() throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+-      Class appletClass = classLoader.loadClass("net.minecraft.client.MinecraftApplet");
++      Class appletClass = classLoader.loadClass("com.mojang.minecraft.MinecraftApplet");
+       return (Applet)appletClass.newInstance();
+    }
+ 
+diff -ruN src_original/net/minecraft/LauncherFrame.java src/net/minecraft/LauncherFrame.java
+--- src_original/net/minecraft/LauncherFrame.java	2022-10-09 19:47:16.000000000 -0400
++++ src/net/minecraft/LauncherFrame.java	2022-10-09 19:46:41.624216731 -0400
+@@ -79,7 +79,7 @@
+ 
+    }
+ 
+-   public void login(String userName, String password) {
++   public void login(String userName, String password, String server) {
+       try {
+          String parameters = "user=" + URLEncoder.encode(userName, "UTF-8") + "&password=" + URLEncoder.encode(password, "UTF-8") + "&version=" + 12;
+          String result = Util.excutePost("http://www.minecraft.net/game/getversion.jsp", parameters);
+@@ -102,10 +102,33 @@
+             this.loginForm.setNoNetwork();
+             return;
+          }
++         
+ 
+          String[] values = result.split(":");
+          System.out.println("Username is '" + values[2] + "'");
+          this.launcher = new Launcher();
++         
++         if (!server.equals("")) {
++            String host = "";
++            String port = "";
++         
++            if (server.contains(":")) {
++               String[] splitServer = server.split(":");
++            
++               host = splitServer[0];
++               port = splitServer[1];
++            } else {
++               host = server;
++               port = "25565";
++            }
++            
++            if (!host.equals("") && !port.equals("")) {
++               this.launcher.customParameters.put("server", host);
++               this.launcher.customParameters.put("port", port);
++               this.launcher.customParameters.put("mppass", "");
++            }
++         }
++         
+          this.launcher.customParameters.put("userName", values[2].trim());
+          this.launcher.customParameters.put("latestVersion", values[0].trim());
+          this.launcher.customParameters.put("downloadTicket", values[1].trim());
+diff -ruN src_original/net/minecraft/Launcher.java src/net/minecraft/Launcher.java
+--- src_original/net/minecraft/Launcher.java	2022-10-09 19:47:16.000000000 -0400
++++ src/net/minecraft/Launcher.java	2022-10-09 19:38:14.473427272 -0400
+@@ -77,6 +77,7 @@
+ 
+                try {
+                   if (!Launcher.this.gameUpdater.fatalError) {
++                     Launcher.this.customParameters.put("haspaid", "true");
+                      Launcher.this.replace(Launcher.this.gameUpdater.createApplet());
+                   }
+                } catch (ClassNotFoundException var2) {
+@@ -189,8 +190,7 @@
+       }
+    }
+ 
+-   public void run() {
+-   }
++   public void run() {}
+ 
+    public String getParameter(String name) {
+       String custom = (String)this.customParameters.get(name);
+@@ -205,14 +205,22 @@
+          }
+       }
+    }
+-
+-   public void appletResize(int width, int height) {
+-   }
++   
++   public void appletResize(int width, int height) {}
+ 
+    public URL getDocumentBase() {
+       try {
+          return new URL("http://www.minecraft.net/game/");
+       } catch (MalformedURLException var2) {
++         var2.printStackTrace();
++         return null;
++      }
++   }
++   
++   public URL getCodeBase() {
++      try {
++         return new URL("http://www.minecraft.net/game/");
++      } catch (MalformedURLException var2) {
+          var2.printStackTrace();
+          return null;
+       }
+diff -ruN src_original/net/minecraft/LoginForm.java src/net/minecraft/LoginForm.java
+--- src_original/net/minecraft/LoginForm.java	2022-10-09 19:47:18.304997096 -0400
++++ src/net/minecraft/LoginForm.java	2022-10-09 19:26:49.070845434 -0400
+@@ -44,6 +44,7 @@
+    private Image bgImage;
+    private TextField userName = new TextField(20);
+    private TextField password = new TextField(20);
++   private TextField server = new TextField(20);
+    private Checkbox rememberBox = new Checkbox("Remember password");
+    private Button launchButton = new Button("Login");
+    private Button retryButton = new Button("Try again");
+@@ -81,7 +82,7 @@
+       });
+       this.launchButton.addActionListener(new ActionListener() {
+          public void actionPerformed(ActionEvent ae) {
+-            launcherFrame.login(LoginForm.this.userName.getText(), LoginForm.this.password.getText());
++            launcherFrame.login(LoginForm.this.userName.getText(), LoginForm.this.password.getText(), LoginForm.this.server.getText());
+          }
+       });
+    }
+@@ -161,7 +162,7 @@
+       String msg = "Minecraft Launcher";
+       g.setFont(new Font((String)null, 1, 20));
+       FontMetrics fm = g.getFontMetrics();
+-      g.drawString(msg, w / 2 - fm.stringWidth(msg) / 2, h / 2 - fm.getHeight() * 2);
++      g.drawString(msg, w / 2 - fm.stringWidth(msg) / 2, h / 2 - fm.getHeight() * 3);
+       g.dispose();
+       g2.drawImage(this.img, 0, 0, w * 2, h * 2, (ImageObserver)null);
+    }
+@@ -202,10 +203,12 @@
+       Panel values = new Panel(gl2);
+       titles.add(new Label("Username:", 2));
+       titles.add(new Label("Password:", 2));
++      titles.add(new Label("Server:", 2));
+       titles.add(new Label("", 2));
+       this.password.setEchoChar('*');
+       values.add(this.userName);
+       values.add(this.password);
++      values.add(this.server);
+       values.add(this.rememberBox);
+       panel.add(titles, "West");
+       panel.add(values, "Center");
+@@ -372,7 +375,7 @@
+ 
+    public void checkAutologin() {
+       if (this.password.getText().length() > 0) {
+-         this.launcherFrame.login(this.userName.getText(), this.password.getText());
++         this.launcherFrame.login(this.userName.getText(), this.password.getText(), this.server.getText());
+       }
+ 
+    }
